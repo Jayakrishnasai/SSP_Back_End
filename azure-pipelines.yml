@@ -24,7 +24,7 @@ stages:
       displayName: 'Build Docker Image'
       inputs:
         containerRegistry: 'ACR_Access'
-        repository: 'perseverance-project'
+        repository: 'saiproject.azurecr.io/perseverance-project'
         command: 'build'
         Dockerfile: '**/Dockerfile'
         tags: |
@@ -42,7 +42,7 @@ stages:
       displayName: 'Push Docker Image' 
       inputs:
         containerRegistry: 'ACR_Access'
-        repository: 'perseverance-project'
+        repository: 'saiproject.azurecr.io/perseverance-project'
         command: 'push'
         tags: |
           $(version)
