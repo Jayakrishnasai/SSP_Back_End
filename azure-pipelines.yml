@@ -5,6 +5,8 @@ variables:
   version: 'backend_$(Build.BuildId)'
 
 stages:
+
+# ─────────────────────────────
 - stage: CheckoutCode
   displayName: 'Checkout Code'
   jobs:
@@ -13,6 +15,7 @@ stages:
     steps:
     - checkout: self
 
+# ─────────────────────────────
 - stage: BuildDockerImage
   displayName: 'Build Docker Image'
   dependsOn: CheckoutCode
@@ -20,23 +23,25 @@ stages:
   - job: build
     displayName: 'Build Docker Image'
     steps:
+
     - task: Docker@2
-      displayName: 'Docker Login to ACR'
+      displayName: 'Login to ACR'
       inputs:
-        containerRegistry: 'ACR_Access'
-        command: 'login'
+        command: login
+        containerRegistry: 'ACR_Access'  # ✅ Unified service connection
 
     - task: Docker@2
       displayName: 'Build Docker Image'
       inputs:
         containerRegistry: 'ACR_Access'
-        repository: 'perseverance-project'  # ⬅️ Corrected repository path
+        repository: 'perseverance-project'
         command: 'build'
         Dockerfile: '**/Dockerfile'
         tags: |
           $(version)
       name: buildImage
 
+# ─────────────────────────────
 - stage: PushDockerImage
   displayName: 'Push Docker Image'
   dependsOn: BuildDockerImage
@@ -44,6 +49,7 @@ stages:
   - job: push
     displayName: 'Push Image to ACR'
     steps:
+
     - task: Docker@2
       displayName: 'Docker Login to ACR'
       inputs:
@@ -59,6 +65,7 @@ stages:
         tags: |
           $(version)
 
+# ─────────────────────────────
 - stage: CleanupDockerImages
   displayName: 'Clean Up Docker Images'
   dependsOn: PushDockerImage
@@ -70,6 +77,7 @@ stages:
         docker rmi -f $(docker images -aq) || true
       displayName: 'Remove all Docker images'
 
+# ─────────────────────────────
 - stage: ModifyAndPublishYaml
   displayName: 'Modify and Publish Kubernetes Manifest'
   dependsOn: CleanupDockerImages
@@ -77,6 +85,7 @@ stages:
   - job: modifyAndPublish
     displayName: 'Modify Kubernetes Manifest and Publish'
     steps:
+
     - script: |
         echo "Replacing VERSION with $(version) in backend.yml"
         sed -i "s|VERSION|$(version)|g" backend.yml
