@@ -28,12 +28,12 @@ stages:
       displayName: 'Login to ACR'
       inputs:
         command: login
-        containerRegistry: 'devopsplines'  # ✅ Unified service connection
+        containerRegistry: 'DevOpsPLines'  # ✅ Unified service connection
 
     - task: Docker@2
       displayName: 'Build Docker Image'
       inputs:
-        containerRegistry: 'devopsplines'
+        containerRegistry: 'DevOpsPLines'
         repository: 'perseverance-project'
         command: 'build'
         Dockerfile: '**/Dockerfile'
@@ -53,13 +53,13 @@ stages:
     - task: Docker@2
       displayName: 'Docker Login to ACR'
       inputs:
-        containerRegistry: 'devopsplines'
+        containerRegistry: 'DevOpsPLines'
         command: 'login'
 
     - task: Docker@2
       displayName: 'Push Docker Image'
       inputs:
-        containerRegistry: 'devopsplines'
+        containerRegistry: 'DevOpsPLines'
         repository: 'perseverance-project'
         command: 'push'
         tags: |
