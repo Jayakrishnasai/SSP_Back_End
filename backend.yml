@@ -43,9 +43,10 @@ metadata:
   name: backend-service-api
   namespace: three-tier
 spec:
-  type: ClusterIP        # 🔹 Changed from NodePort to ClusterIP
+  type: NodePort        # 🔹 Changed from NodePort to ClusterIP
   ports:
   - port: 8080           # Service port (internal)
-    targetPort: 3100     # Container port
+    targetPort: 3100
+    nodePort: 30008      # Container port
   selector:
     role: backend
