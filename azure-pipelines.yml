@@ -1,52 +1,101 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend-api
-  namespace: three-tier
-  labels:
-    role: backend
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      role: backend
-  template:
-    metadata:
-      labels:
-        role: backend
-    spec:
-      containers:
-      - name: backend-api
-        image: devopsplines.azurecr.io/perseverance-project:VERSION
-        imagePullPolicy: Always
-        env:
-          - name: DB_CONN_STR
-            value: mongodb://mongodb-svc:27017/perseverance?directConnection=true
-          - name: DB_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: db-secret
-                key: username
-          - name: DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: db-secret
-                key: password
-        ports:
-        - containerPort: 3100
-      imagePullSecrets:
-      - name: acr-creds
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-service-api
-  namespace: three-tier
-spec:
-  type: NodePort
-  ports:
-  - port: 8080
-    targetPort: 3100
-    nodePort: 30008
-  selector:
-    role: backend
+pool:
+  name: 'Dev'
+
+variables:
+  version: 'backend_$(Build.BuildId)'
+
+stages:
+
+# ─────────────────────────────
+- stage: CheckoutCode
+  displayName: 'Checkout Code'
+  jobs:
+  - job: checkout
+    displayName: 'Checkout Code'
+    steps:
+    - checkout: self
+
+# ─────────────────────────────
+- stage: BuildDockerImage
+  displayName: 'Build Docker Image'
+  dependsOn: CheckoutCode
+  jobs:
+  - job: build
+    displayName: 'Build Docker Image'
+    steps:
+
+    - task: Docker@2
+      displayName: 'Login to ACR'
+      inputs:
+        command: login
+        containerRegistry: 'DevOpsPLines'  # ✅ Unified service connection
+
+    - task: Docker@2
+      displayName: 'Build Docker Image'
+      inputs:
+        containerRegistry: 'DevOpsPLines'
+        repository: 'perseverance-project'
+        command: 'build'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(version)
+      name: buildImage
+
+# ─────────────────────────────
+- stage: PushDockerImage
+  displayName: 'Push Docker Image'
+  dependsOn: BuildDockerImage
+  jobs:
+  - job: push
+    displayName: 'Push Image to ACR'
+    steps:
+
+    - task: Docker@2
+      displayName: 'Docker Login to ACR'
+      inputs:
+        containerRegistry: 'DevOpsPLines'
+        command: 'login'
+
+    - task: Docker@2
+      displayName: 'Push Docker Image'
+      inputs:
+        containerRegistry: 'DevOpsPLines'
+        repository: 'perseverance-project'
+        command: 'push'
+        tags: |
+          $(version)
+
+# ─────────────────────────────
+- stage: CleanupDockerImages
+  displayName: 'Clean Up Docker Images'
+  dependsOn: PushDockerImage
+  jobs:
+  - job: cleanup
+    displayName: 'Clean Up Docker Images'
+    steps:
+    - script: |
+        docker rmi -f $(docker images -aq) || true
+      displayName: 'Remove all Docker images'
+
+# ─────────────────────────────
+- stage: ModifyAndPublishYaml
+  displayName: 'Modify and Publish Kubernetes Manifest'
+  dependsOn: CleanupDockerImages
+  jobs:
+  - job: modifyAndPublish
+    displayName: 'Modify Kubernetes Manifest and Publish'
+    steps:
+
+    - script: |
+        echo "Replacing VERSION with $(version) in backend.yml"
+        sed -i "s|VERSION|$(version)|g" backend.yml
+        cat backend.yml
+        cp backend.yml $(Build.ArtifactStagingDirectory)/
+      displayName: 'Modify Kubernetes Manifest'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Modified Kubernetes Manifest'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'k8s-manifest'
+        publishLocation: 'Container'
