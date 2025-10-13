@@ -43,10 +43,10 @@ metadata:
   name: backend-service-api
   namespace: three-tier
 spec:
-  type: NodePort                # Exposed externally via NodePort
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 3100
+    nodePort: 30008
   selector:
     role: backend
-  ports:
-    - port: 8080               # Service port (used by frontend)
-      targetPort: 3100         # Backend container port
-      nodePort: 30007          # External port to access backend
