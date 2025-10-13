@@ -20,8 +20,6 @@ spec:
         image: devopsplines.azurecr.io/perseverance-project:VERSION
         imagePullPolicy: Always
         env:
-          - name: DB_CONN_STR
-            value: mongodb://$(DB_USERNAME):$(DB_PASSWORD)@mongodb-svc:27017/perseverance?authSource=admin&directConnection=true
           - name: DB_USERNAME
             valueFrom:
               secretKeyRef:
@@ -32,6 +30,8 @@ spec:
               secretKeyRef:
                 name: db-secret
                 key: password
+          - name: DB_CONN_STR
+            value: mongodb://$(DB_USERNAME):$(DB_PASSWORD)@mongodb-svc:27017/perseverance?authSource=admin&directConnection=true
         ports:
         - containerPort: 3100
       imagePullSecrets:
@@ -43,10 +43,10 @@ metadata:
   name: backend-service-api
   namespace: three-tier
 spec:
-  type: NodePort
-  ports:
-  - port: 8080          # Service port (frontend uses this)
-    targetPort: 3100    # Backend container port
-    nodePort: 30008     # Exposed node port (external access)
+  type: NodePort                # Exposed externally via NodePort
   selector:
     role: backend
+  ports:
+    - port: 8080               # Service port (used by frontend)
+      targetPort: 3100         # Backend container port
+      nodePort: 30008          # External port to access backend
