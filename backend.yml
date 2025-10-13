@@ -49,4 +49,4 @@ spec:
   ports:
     - port: 8080               # Service port (used by frontend)
       targetPort: 3100         # Backend container port
-      nodePort: 30008          # External port to access backend
+      nodePort: 30007          # External port to access backend
