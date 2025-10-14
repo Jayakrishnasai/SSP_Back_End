@@ -1,5 +1,5 @@
 pool:
-  name: 'Dev'
+  name: 'Dev_Pool'
 
 variables:
   version: 'backend_$(Build.BuildId)'
@@ -33,7 +33,7 @@ stages:
     - task: Docker@2
       displayName: 'Build Docker Image'
       inputs:
-        containerRegistry: 'DevOpsPLines'
+        containerRegistry: 'devline'
         repository: 'perseverance-project'
         command: 'build'
         Dockerfile: '**/Dockerfile'
@@ -53,13 +53,13 @@ stages:
     - task: Docker@2
       displayName: 'Docker Login to ACR'
       inputs:
-        containerRegistry: 'DevOpsPLines'
+        containerRegistry: 'devline'
         command: 'login'
 
     - task: Docker@2
       displayName: 'Push Docker Image'
       inputs:
-        containerRegistry: 'DevOpsPLines'
+        containerRegistry: 'devline'
         repository: 'perseverance-project'
         command: 'push'
         tags: |
