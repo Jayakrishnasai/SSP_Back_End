@@ -21,7 +21,7 @@ spec:
         imagePullPolicy: Always
         env:
           - name: DB_CONN_STR
-            value: mongodb://mongodb-svc:27017/perseverance?directConnection=true
+            value: mongodb://$(DB_USERNAME):$(DB_PASSWORD)@mongodb-svc:27017/perseverance?authSource=admin&directConnection=true
           - name: DB_USERNAME
             valueFrom:
               secretKeyRef:
