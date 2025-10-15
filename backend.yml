@@ -1,70 +1,52 @@
-apiVersion: v1
-kind: Secret
-metadata: 
-  namespace: three-tier
-  name: db-secret
-type: Opaque
-data:  
-  password: cGFzc3dvcmQxMjM=
-  username: YWRtaW4=
----
 apiVersion: apps/v1
 kind: Deployment
-metadata: 
+metadata:
+  name: backend-api
   namespace: three-tier
-  name: mongodb
-spec: 
-  replicas: 1
+  labels:
+    role: backend
+spec:
+  replicas: 2
   selector:
     matchLabels:
-      app: mongodb
+      role: backend
   template:
     metadata:
-      labels: 
-        app: mongodb
-    spec: 
+      labels:
+        role: backend
+    spec:
       containers:
-      - name: mongo-cont
-        image: mongo:4.4.6
-        command:
-            - "numactl"
-            - "--interleave=all"
-            - "mongod"
-            - "--wiredTigerCacheSizeGB"
-            - "0.1"
-            - "--bind_ip"
-            - "0.0.0.0"
-        ports:
-        - containerPort: 27017
-        env: 
-          - name: MONGO_INITDB_ROOT_USERNAME
+      - name: backend-api
+        image: perseverance01.azurecr.io/perseverance-project:VERSION
+        imagePullPolicy: Always
+        env:
+          - name: DB_CONN_STR
+            value: mongodb://mongodb-svc:27017/perseverance?directConnection=true
+          - name: DB_USERNAME
             valueFrom:
               secretKeyRef:
                 name: db-secret
                 key: username
-          - name: MONGO_INITDB_ROOT_PASSWORD
+          - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: db-secret
                 key: password
-        volumeMounts:
-        - name: mongo-data
-          mountPath: /data/db
-      volumes:
-      - name: mongo-data
-        hostPath:
-          path: /customdbsolution
+        ports:
+        - containerPort: 3100
+      imagePullSecrets:
+      - name: acr-creds
 ---
 apiVersion: v1
 kind: Service
 metadata:
+  name: backend-service-api
   namespace: three-tier
-  name: mongodb-svc
 spec:
-  selector:
-    app: mongodb
+  type: NodePort
   ports:
-  - name: mongodb-svc
-    protocol: TCP
-    port: 27017
-    targetPort: 27017
+  - port: 8080
+    targetPort: 3100
+    nodePort: 30008
+  selector:
+    role: backend
