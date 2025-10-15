@@ -34,7 +34,7 @@ spec:
                 key: password
         ports:
         - containerPort: 3100
-      imagePullSecrets:
+      imagePullSecrets:                   # ✅ fixed indentation
       - name: acr-creds
 ---
 apiVersion: v1
