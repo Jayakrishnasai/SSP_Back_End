@@ -1,53 +1,70 @@
+apiVersion: v1
+kind: Secret
+metadata: 
+  namespace: three-tier
+  name: db-secret
+type: Opaque
+data:  
+  password: cGFzc3dvcmQxMjM=
+  username: YWRtaW4=
+---
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: mongodb
+metadata: 
   namespace: three-tier
-  labels:
-    role: database
-spec:
+  name: mongodb
+spec: 
   replicas: 1
   selector:
     matchLabels:
-      role: database
+      app: mongodb
   template:
     metadata:
-      labels:
-        role: database
-    spec:
+      labels: 
+        app: mongodb
+    spec: 
       containers:
-      - name: mongodb
-        image: mongo:7.0
+      - name: mongo-cont
+        image: mongo:4.4.6
+        command:
+            - "numactl"
+            - "--interleave=all"
+            - "mongod"
+            - "--wiredTigerCacheSizeGB"
+            - "0.1"
+            - "--bind_ip"
+            - "0.0.0.0"
         ports:
         - containerPort: 27017
-        env:
-        - name: MONGO_INITDB_ROOT_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: username
-        - name: MONGO_INITDB_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: password
+        env: 
+          - name: MONGO_INITDB_ROOT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: username
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: password
         volumeMounts:
-        - name: mongo-storage
+        - name: mongo-data
           mountPath: /data/db
-      volumes:                                  # ✅ moved outside containers
-      - name: mongo-storage
-        persistentVolumeClaim:
-          claimName: mongo-pvc
+      volumes:
+      - name: mongo-data
+        hostPath:
+          path: /customdbsolution
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongodb-svc
   namespace: three-tier
+  name: mongodb-svc
 spec:
-  type: ClusterIP
   selector:
-    role: database
+    app: mongodb
   ports:
-  - port: 27017
+  - name: mongodb-svc
+    protocol: TCP
+    port: 27017
     targetPort: 27017
